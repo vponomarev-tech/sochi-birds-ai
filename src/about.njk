@@ -1,0 +1,145 @@
+---
+title: About Sochi Birds
+layout: layouts/base.njk
+permalink: "/about/"
+---
+
+<section class="page-header py-5 bg-light border-bottom">
+  <div class="container">
+    <h1 class="display-5 fw-bold mb-3" data-i18n="about_title">About Sochi Birds</h1>
+    <p class="lead text-muted mb-0" data-i18n="about_subtitle">
+      Real-time bird sound identification for Sochi and the Black Sea coast, running entirely in your web browser.
+    </p>
+  </div>
+</section>
+
+<section class="py-5">
+  <div class="container">
+    <div class="row g-5">
+      <div class="col-lg-8">
+
+        <h2 class="h3 fw-bold mb-3" data-i18n="about_demo_title">What is this?</h2>
+        <p data-i18n="about_demo_p1">
+          <strong>Sochi Birds</strong> is a Progressive Web App (PWA) that runs the BirdNET model entirely inside your browser using <strong>TensorFlow.js</strong> — no app install, no server, no audio ever leaves your device.
+        </p>
+        <p data-i18n="about_demo_p2">
+          It's built on top of the official <a href="https://github.com/birdnet-team/real-time-pwa" target="_blank">BirdNET Live</a> project (MIT licensed) from Cornell/Chemnitz, tuned for one fixed region instead of the whole planet: a per-species confidence threshold you can adjust individually, a rarity penalty that raises the bar for species rarely seen on this coast — aimed at cutting the "rare bird in the wrong place" false positives that stock BirdNET/Merlin are known for — and a running session history, which stock BirdNET apps don't keep at all.
+        </p>
+
+        <hr class="my-5">
+
+        <h2 class="h3 fw-bold mb-3" data-i18n="about_urban_title">Why frame this as urban research?</h2>
+        <p data-i18n="about_urban_p1">
+          Sochi is a useful test case: a narrow subtropical strip squeezed between the sea and the Caucasus foothills, under some of the fastest resort/residential construction pressure in Russia. Birdsong is a cheap, continuous, passive signal of ecological health that a planner or architect doesn't otherwise get — closer to a noise map or a heat map than to a birdwatching checklist.
+        </p>
+        <p data-i18n="about_urban_p2">
+          The idea (borrowing from <a href="https://en.wikipedia.org/wiki/R._Murray_Schafer" target="_blank">R. Murray Schafer's</a> soundscape ecology and from bioacoustic monitoring used in conservation) is to log <em>where and when species are heard</em>, not just identify them once. Enough logged points over time could start to show things a map of buildings alone won't: which green corridors still connect, which courtyards and parks function as real habitat versus decorative landscaping, and how that shifts as construction density increases along the coast.
+        </p>
+        <p data-i18n="about_urban_p3" class="text-muted small">
+          This is a hobby project, not a peer-reviewed study — treat any pattern it turns up as a lead to investigate, not a finding.
+        </p>
+
+        <hr class="my-5">
+
+        <h2 class="h3 fw-bold mb-3" data-i18n="about_birdnet_title">What is BirdNET?</h2>
+        <p data-i18n="about_birdnet_p1">
+          BirdNET is a research platform developed jointly by the <strong>K. Lisa Yang Center for Conservation Bioacoustics</strong> at the Cornell Lab of Ornithology and the <strong>Chemnitz University of Technology</strong>.
+        </p>
+        <p data-i18n="about_birdnet_p2">
+          The project uses artificial neural networks to train computers to identify more than 6,000 of the most common bird species worldwide. It is one of the most advanced tools for acoustic monitoring of birds.
+        </p>
+        <a href="https://birdnet.cornell.edu/" target="_blank" class="btn btn-outline-primary mt-2">
+          <span data-i18n="about_btn_official">Visit Official BirdNET Website</span> <i class="bi bi-box-arrow-up-right ms-1"></i>
+        </a>
+
+        <hr class="my-5">
+
+        <h2 class="h3 fw-bold mb-3" data-i18n="about_how_title">How the Detection Works</h2>
+        <div class="d-flex flex-column gap-4">
+          <div class="d-flex gap-3">
+            <div class="flex-shrink-0">
+              <span class="badge bg-primary rounded-pill fs-5" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">1</span>
+            </div>
+            <div>
+              <h5 class="fw-semibold" data-i18n="about_step1_title">Audio Capture</h5>
+              <p class="text-muted mb-0" data-i18n="about_step1_desc">Your browser's Web Audio API captures sound from your microphone and resamples it to 48,000 Hz.</p>
+            </div>
+          </div>
+          <div class="d-flex gap-3">
+            <div class="flex-shrink-0">
+              <span class="badge bg-primary rounded-pill fs-5" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">2</span>
+            </div>
+            <div>
+              <h5 class="fw-semibold" data-i18n="about_step2_title">Spectrogram Generation</h5>
+              <p class="text-muted mb-0" data-i18n="about_step2_desc">The audio is sliced into 3-second chunks. These chunks are converted into <strong>Mel Spectrograms</strong>—visual representations of sound that show frequency intensity over time.</p>
+            </div>
+          </div>
+          <div class="d-flex gap-3">
+            <div class="flex-shrink-0">
+              <span class="badge bg-primary rounded-pill fs-5" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">3</span>
+            </div>
+            <div>
+              <h5 class="fw-semibold" data-i18n="about_step3_title">Neural Network Inference</h5>
+              <p class="text-muted mb-0" data-i18n="about_step3_desc">The spectrogram image is fed into a Convolutional Neural Network (CNN). This model has learned to "see" bird calls in these images, distinguishing them from noise and other animals.</p>
+            </div>
+          </div>
+          <div class="d-flex gap-3">
+            <div class="flex-shrink-0">
+              <span class="badge bg-primary rounded-pill fs-5" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">4</span>
+            </div>
+            <div>
+              <h5 class="fw-semibold" data-i18n="about_step4_title">Post-Processing</h5>
+              <p class="text-muted mb-0" data-i18n="about_step4_desc">The model outputs probability scores for thousands of species. We apply a <strong>confidence threshold</strong> (e.g., 25%) and optionally a <strong>location filter</strong> to hide birds that are unlikely to be found in your area.</p>
+            </div>
+          </div>
+        </div>
+
+        <hr class="my-5">
+
+        <h2 class="h3 fw-bold mb-3" data-i18n="about_roadmap_title">Roadmap: a shared map</h2>
+        <p data-i18n="about_roadmap_p1">
+          Right now every detection stays on your own device. The next step under consideration is a shared map: after a detection you confirm, it gets pinned at your location so a community map of "who's singing where" builds up over time — the kind of citizen-science layer bird atlases and eBird already do at country scale, just local and passive.
+        </p>
+        <p data-i18n="about_roadmap_p2">
+          The likely path is a <strong>Telegram Mini App</strong> rather than a separate native app: it's just this same web app opened inside Telegram, so the detection code doesn't change. Telegram already identifies the user to the app with a small signed payload, no separate login screen needed — sharing a location pin is one tap, not an account. The only new piece is a small shared backend to store and serve the pins on a map.
+        </p>
+
+        <hr class="my-5">
+
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <h2 class="section-title h5 fw-bold" data-i18n="about_contact_title">Contact</h2>
+            <p class="text-muted" data-i18n="about_contact_desc">Questions about BirdNET research, tools, or collaborations:</p>
+            <p class="text-muted">
+              <strong>Email:</strong><br>
+              <a href="mailto:ccb-birdnet@cornell.edu">ccb-birdnet@cornell.edu</a>
+            </p>
+          </div>
+        </div>
+
+        <hr class="my-5">
+
+        <p>
+          <a href="{{ '/legal/' | url }}" class="link-secondary text-decoration-none" data-i18n="about_privacy_link">
+            Privacy Policy & Legal Notice
+          </a>
+        </p>
+
+      </div>
+      
+      <div class="col-lg-4">
+        <div class="card bg-light border-0 mb-4">
+          <div class="card-body p-4">
+            <h2 class="h5 fw-bold mb-4" data-i18n="about_github_title">Sochi Birds on GitHub</h2>
+            <p class="text-muted mb-4" data-i18n="about_github_desc">
+              The source code for Sochi Birds is available on GitHub, forked from BirdNET Live. Feel free to inspect the code, report issues, or contribute improvements!
+            </p>
+            <a href="https://github.com/vponomarev-tech/sochi-birds-ai" target="_blank" class="btn btn-primary">
+              <span data-i18n="about_btn_repo">View Repository</span> <i class="bi bi-box-arrow-up-right ms-1"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

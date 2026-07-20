@@ -1,0 +1,31 @@
+<header class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container">
+    <a class="navbar-brand fw-semibold d-flex align-items-center gap-2" href="{{ '/' | url }}">
+      <img src="{{ '/img/bird-song-ai-logo.png' | url }}" alt="Sochi Birds logo" class="navbar-logo">
+      <span data-i18n="app_title">BirdNET Live</span>
+    </a>
+
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+            data-bs-target="#mainNav" aria-controls="mainNav"
+            aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <nav class="collapse navbar-collapse" id="mainNav">
+      <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <a class="nav-link{% if page.url == '/' %} active{% endif %}" href="{{ '/' | url }}" data-i18n="nav_live">Live</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link{% if page.url == '/explore/' %} active{% endif %}" href="{{ '/explore/' | url }}" data-i18n="nav_explore">Explore</a>
+        </li>        
+        <li class="nav-item">
+          <a class="nav-link{% if page.url == '/about/' %} active{% endif %}" href="{{ '/about/' | url }}" data-i18n="nav_about">About</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link{% if page.url == '/share/' %} active{% endif %}" href="{{ '/share/' | url }}" data-i18n="nav_share">Share</a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</header>

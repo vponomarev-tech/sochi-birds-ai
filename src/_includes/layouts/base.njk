@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ title or "Sochi Birds" }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1728">
+
+  <link rel="manifest" href="{{ '/manifest.webmanifest' | url }}">
+  <link rel="icon" type="image/png" href="{{ '/favicon.png' | url }}">
+  <link rel="apple-touch-icon" href="{{ '/img/apple-touch-icon.png' | url }}">
+
+  <link rel="stylesheet" href="{{ '/vendor/bootstrap/bootstrap.min.css' | url }}">
+  <link rel="stylesheet" href="{{ '/vendor/bootstrap-icons/bootstrap-icons.css' | url }}">
+  <link rel="stylesheet" href="{{ '/css/main.css' | url }}">
+
+  <script>
+    window.PATH_PREFIX = "{{ '/' | url }}";
+  </script>
+  <script src="{{ '/vendor/d3/d3.min.js' | url }}"></script>
+</head>
+<body class="d-flex flex-column min-vh-100">
+
+  {% include "partials/header.njk" %}
+
+  <main class="flex-fill">
+    {{ content | safe }}
+  </main>
+
+  <script src="{{ '/vendor/bootstrap/bootstrap.bundle.min.js' | url }}"></script>
+  <script src="{{ '/js/app.js' | url }}"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register("{{ '/sw.js' | url }}").catch(console.error);
+      });
+    }
+  </script>
+</body>
+</html>
