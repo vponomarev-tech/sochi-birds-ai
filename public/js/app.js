@@ -73,6 +73,12 @@ let bufferLength;
 let spectroColumnSeconds = 0;
 let lastSpectroColumnTime = 0;
 
+// Noise Level State (relative, uncalibrated — reuses the spectrogram's own
+// analyser, no extra audio node needed)
+let latestNoiseDb = null;
+let noiseLogIntervalId = null;
+let noiseReadoutIntervalId = null;
+
 // Geolocation State
 let geolocation = null;
 let geoWatchId = null;
@@ -350,6 +356,35 @@ function logHistoryEntries(detections) {
   renderHistory();
 }
 
+const NOISE_LOG_INTERVAL_MS = 30000;
+const NOISE_HISTORY_MAX_ENTRIES = 500;
+
+let noiseHistory = [];
+try {
+  noiseHistory = JSON.parse(store.get("bn_noise_history", "[]") || "[]");
+} catch (_) {
+  noiseHistory = [];
+}
+
+/**
+ * Logs one relative noise-level sample with the current location (if
+ * geolocation is on), on the same cadence idea as the detection history —
+ * a periodic environmental reading, not tied to any single bird.
+ */
+function logNoiseSample() {
+  if (latestNoiseDb == null) return;
+  noiseHistory.unshift({
+    t: Date.now(),
+    db: Math.round(latestNoiseDb * 10) / 10,
+    lat: geolocation ? geolocation.lat : null,
+    lon: geolocation ? geolocation.lon : null
+  });
+  if (noiseHistory.length > NOISE_HISTORY_MAX_ENTRIES) {
+    noiseHistory.length = NOISE_HISTORY_MAX_ENTRIES;
+  }
+  store.set("bn_noise_history", JSON.stringify(noiseHistory));
+}
+
 function renderHistory() {
   const container = document.getElementById("historyList");
   if (!container) return;
@@ -606,6 +641,10 @@ async function startListening() {
 
     await setupAudioGraphFromStream(currentStream);
     updateStatus("status_listening");
+
+    updateNoiseReadoutUI();
+    noiseReadoutIntervalId = setInterval(updateNoiseReadoutUI, 1000);
+    noiseLogIntervalId = setInterval(logNoiseSample, NOISE_LOG_INTERVAL_MS);
   } catch (e) {
     console.error(e);
     updateStatus("status_mic_failed");
@@ -633,6 +672,10 @@ function stopListening() {
   // Reset State
   lastInferenceStart = 0;
   lastInferenceMs = null;
+  if (noiseReadoutIntervalId) { clearInterval(noiseReadoutIntervalId); noiseReadoutIntervalId = null; }
+  if (noiseLogIntervalId) { clearInterval(noiseLogIntervalId); noiseLogIntervalId = null; }
+  latestNoiseDb = null;
+  updateNoiseReadoutUI();
 
   // Cleanup Audio
   if (currentStream) {
@@ -936,6 +979,7 @@ function drawSpectrogram() {
   if (!analyser || !audioContext) return;
 
   analyser.getFloatFrequencyData(dataArray);
+  updateNoiseLevel(dataArray);
 
   const w = spectroCanvas.width;
   const h = spectroCanvas.height;
@@ -1000,6 +1044,28 @@ function drawSpectrogram() {
       spectroCtx.fillRect(x, yDraw, 1, hDraw);
     }
   }
+}
+
+/**
+ * Approximate, uncalibrated relative loudness from the same frequency data
+ * already computed for the spectrogram (average dBFS across all bins).
+ * Not a certified SPL/dB(A) reading — phone/browser mics have unknown,
+ * varying gain — but useful for comparing "louder here vs quieter there"
+ * over time and location.
+ */
+function updateNoiseLevel(freqData) {
+  let sum = 0, count = 0;
+  for (let i = 0; i < freqData.length; i++) {
+    const v = freqData[i];
+    if (Number.isFinite(v)) { sum += v; count++; }
+  }
+  if (count > 0) latestNoiseDb = sum / count;
+}
+
+function updateNoiseReadoutUI() {
+  const el = document.getElementById("noiseLevelText");
+  if (!el) return;
+  el.textContent = latestNoiseDb != null ? `${Math.round(latestNoiseDb)} dB` : "—";
 }
 
 /* ==========================================================================
@@ -1654,30 +1720,53 @@ const SOCHI_CENTER = [43.6028, 39.7342];
  * Entirely local: reads the same detectionHistory array/localStorage used
  * by the Live page's history log, nothing is sent anywhere.
  */
+// Rough clamp range for coloring relative noise samples — not calibrated
+// SPL thresholds, just the typical span this analyser tends to produce.
+const NOISE_COLOR_MIN_DB = -90;
+const NOISE_COLOR_MAX_DB = -20;
+
 function initMapPage() {
   const mapEl = document.getElementById("mapView");
   if (!mapEl || typeof L === "undefined") return;
 
-  const points = detectionHistory.filter(h => typeof h.lat === "number" && typeof h.lon === "number");
+  const birdPoints = detectionHistory.filter(h => typeof h.lat === "number" && typeof h.lon === "number");
+  const noisePoints = noiseHistory.filter(h => typeof h.lat === "number" && typeof h.lon === "number");
+  const anyPoint = birdPoints[0] || noisePoints[0];
 
-  const map = L.map("mapView").setView(points.length ? [points[0].lat, points[0].lon] : SOCHI_CENTER, points.length ? 12 : 10);
+  const map = L.map("mapView").setView(anyPoint ? [anyPoint.lat, anyPoint.lon] : SOCHI_CENTER, anyPoint ? 12 : 10);
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors'
   }).addTo(map);
 
-  const markers = points.map(h => {
+  const birdMarkers = birdPoints.map(h => {
     const marker = L.marker([h.lat, h.lon]).addTo(map);
     const time = new Date(h.t).toLocaleString();
     marker.bindPopup(`<strong>${h.commonName}</strong><br>${time}<br>${Math.round(h.confidence * 100)}%`);
     return marker;
   });
 
-  if (markers.length > 1) {
-    map.fitBounds(L.featureGroup(markers).getBounds().pad(0.2));
+  const noiseMarkers = noisePoints.map(h => {
+    const t01 = Math.max(0, Math.min(1, (h.db - NOISE_COLOR_MIN_DB) / (NOISE_COLOR_MAX_DB - NOISE_COLOR_MIN_DB)));
+    const color = typeof d3 !== "undefined" ? d3.interpolateRdYlGn(1 - t01) : "#888";
+    const marker = L.circleMarker([h.lat, h.lon], {
+      radius: 7,
+      color,
+      fillColor: color,
+      fillOpacity: 0.6,
+      weight: 1
+    }).addTo(map);
+    const time = new Date(h.t).toLocaleString();
+    marker.bindPopup(`${tt("lbl_noise_level", "Noise")}: ${h.db} dB (rel.)<br>${time}`);
+    return marker;
+  });
+
+  const allMarkers = [...birdMarkers, ...noiseMarkers];
+  if (allMarkers.length > 1) {
+    map.fitBounds(L.featureGroup(allMarkers).getBounds().pad(0.2));
   }
 
   const note = document.getElementById("mapEmptyNote");
-  if (note && !points.length) note.classList.remove("d-none");
+  if (note && !allMarkers.length) note.classList.remove("d-none");
 }

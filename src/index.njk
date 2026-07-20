@@ -17,16 +17,21 @@ permalink: "/"
       <div id="listeningIndicator" class="spinner-grow text-danger spinner-grow-sm d-none" role="status"></div>
       <span class="small text-muted" id="statusText" data-i18n="status_init">Tap 'Start' to record</span>
     </div>
-    <button
-      id="settingsToggle"
-      class="btn btn-link text-secondary text-decoration-none p-0"
-      type="button"
-      aria-expanded="false"
-      aria-controls="settingsDrawer"
-      aria-label="Toggle settings"
-    >
-      <i class="bi bi-gear-fill fs-4"></i>
-    </button>
+    <div class="d-flex align-items-center gap-3">
+      <span class="small text-muted" title="Approximate relative sound level, uncalibrated — for comparing places/times, not a certified SPL reading.">
+        <span data-i18n="lbl_noise_level">Noise</span>: <span class="fw-semibold" id="noiseLevelText">—</span>
+      </span>
+      <button
+        id="settingsToggle"
+        class="btn btn-link text-secondary text-decoration-none p-0"
+        type="button"
+        aria-expanded="false"
+        aria-controls="settingsDrawer"
+        aria-label="Toggle settings"
+      >
+        <i class="bi bi-gear-fill fs-4"></i>
+      </button>
+    </div>
   </div>
 
   <!-- Detections Grid -->
