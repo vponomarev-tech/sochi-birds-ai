@@ -8,7 +8,7 @@
    1. CONFIGURATION & VERSIONING
    ========================================================================== */
 
-const APP_VERSION = "v0.3.0";   // Increment on app code changes
+const APP_VERSION = "v1.0.0";   // Increment on app code changes
 const MODEL_VERSION = "v2.4";    // Increment only when model files change
 
 const APP_CACHE_NAME = `birdnet-app-${APP_VERSION}`;
@@ -29,6 +29,12 @@ const CORE_URLS = [
   "about/",
   "legal/",
   "share/",
+  "map/",
+  "vendor/leaflet/leaflet.css",
+  "vendor/leaflet/leaflet.js",
+  "vendor/leaflet/images/marker-icon.png",
+  "vendor/leaflet/images/marker-icon-2x.png",
+  "vendor/leaflet/images/marker-shadow.png",
   "favicon.png",
   "manifest.webmanifest",
   "img/bird-song-ai-logo.png",
@@ -135,8 +141,8 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
 
-  // A. External API Images (BirdNET API) -> Cache First
-  if (url.href.startsWith("https://birdnet.cornell.edu/api2/bird/")) {
+  // A. External species photos (Wikipedia/Wikimedia) -> Cache First
+  if (url.hostname.endsWith("wikimedia.org") || url.hostname.endsWith("wikipedia.org")) {
     event.respondWith(handleImageFetch(request));
     return;
   }

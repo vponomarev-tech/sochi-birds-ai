@@ -24,6 +24,15 @@ module.exports = function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy({
     "node_modules/@tensorflow/tfjs/dist/tf.min.js": "js/tfjs-4.14.0.min.js",
   });
+  eleventyConfig.addPassthroughCopy({
+    "node_modules/leaflet/dist/leaflet.css": "vendor/leaflet/leaflet.css",
+  });
+  eleventyConfig.addPassthroughCopy({
+    "node_modules/leaflet/dist/leaflet.js": "vendor/leaflet/leaflet.js",
+  });
+  eleventyConfig.addPassthroughCopy({
+    "node_modules/leaflet/dist/images": "vendor/leaflet/images",
+  });
 
   return {
     pathPrefix: "/sochi-birds-ai/",

@@ -2,7 +2,7 @@
   <div class="container">
     <a class="navbar-brand fw-semibold d-flex align-items-center gap-2" href="{{ '/' | url }}">
       <img src="{{ '/img/bird-song-ai-logo.png' | url }}" alt="Sochi Birds logo" class="navbar-logo">
-      <span data-i18n="app_title">BirdNET Live</span>
+      <span data-i18n="app_title">Sochi Birds</span>
     </a>
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
@@ -18,7 +18,10 @@
         </li>
         <li class="nav-item">
           <a class="nav-link{% if page.url == '/explore/' %} active{% endif %}" href="{{ '/explore/' | url }}" data-i18n="nav_explore">Explore</a>
-        </li>        
+        </li>
+        <li class="nav-item">
+          <a class="nav-link{% if page.url == '/map/' %} active{% endif %}" href="{{ '/map/' | url }}" data-i18n="nav_map">Map</a>
+        </li>
         <li class="nav-item">
           <a class="nav-link{% if page.url == '/about/' %} active{% endif %}" href="{{ '/about/' | url }}" data-i18n="nav_about">About</a>
         </li>

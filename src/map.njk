@@ -1,0 +1,16 @@
+---
+title: Sochi Birds – Map
+layout: layouts/base.njk
+permalink: "/map/"
+---
+
+<div class="container py-4">
+  <h1 class="h4 fw-bold mb-2" data-i18n="map_title">Detection map</h1>
+  <p class="text-muted small" data-i18n="map_desc">
+    Every confirmed detection with a known location, plotted locally on your device. Nothing here is shared with anyone yet — see the roadmap on the About page.
+  </p>
+  <div id="mapEmptyNote" class="alert alert-light border small d-none" data-i18n="map_empty">
+    No located detections yet — enable geolocation in Settings on the Live page and record a few sessions.
+  </div>
+  <div id="mapView" style="height: 65vh; border-radius: 0.5rem; overflow: hidden;"></div>
+</div>

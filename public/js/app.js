@@ -92,43 +92,59 @@ const store = {
 };
 
 /**
- * Maps browser locale string (e.g., "en-US") to BirdNET label code (e.g., "en_us").
+ * Bird photos via the Wikipedia REST API (freely licensed, no per-image
+ * download or curation needed — Wikipedia hosts CC/public-domain images
+ * and its summary endpoint returns a ready-to-use thumbnail). Cached in
+ * localStorage since the species pool is small and photos don't change.
+ * Failures (including "no article") are cached too, so a species with no
+ * photo doesn't get re-fetched on every render.
  */
-function mapBrowserLangToLabelLang(locale) {
-  if (!locale) return "en_us";
-  const l = locale.toLowerCase();
-  if (SUPPORTED_LABEL_LANGS.includes(l)) return l;
-  
-  const base = l.split(/[-_]/)[0];
-  switch (base) {
-    case "en": return l.includes("gb") || l.includes("uk") ? "en_uk" : "en_us";
-    case "de": return "de";
-    case "fr": return "fr";
-    case "es": return "es";
-    case "it": return "it";
-    case "nl": return "nl";
-    case "pt": return "pt";
-    case "fi": return "fi";
-    case "sv": return "sv";
-    case "no": return "no";
-    case "da": return "da";
-    case "pl": return "pl";
-    case "ru": return "ru";
-    case "uk": return "uk";
-    case "cs": return "cs";
-    case "sk": return "sk";
-    case "sl": return "sl";
-    case "hu": return "hu";
-    case "ro": return "ro";
-    case "tr": return "tr";
-    case "ar": return "ar";
-    case "ja": return "ja";
-    case "ko": return "ko";
-    case "th": return "th";
-    case "zh": return "zh";
-    case "af": return "af";
-    default: return "en_us";
+let wikiImageCache = {};
+try {
+  wikiImageCache = JSON.parse(store.get("bn_wiki_img_cache", "{}") || "{}");
+} catch (_) {
+  wikiImageCache = {};
+}
+
+async function fetchWikiImage(scientificName) {
+  if (!scientificName) return null;
+  if (Object.prototype.hasOwnProperty.call(wikiImageCache, scientificName)) {
+    return wikiImageCache[scientificName];
   }
+  let entry = null;
+  try {
+    const resp = await fetch(
+      `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(scientificName)}`,
+      { headers: { Accept: "application/json" } }
+    );
+    if (resp.ok) {
+      const data = await resp.json();
+      const src = data.thumbnail && data.thumbnail.source;
+      const page = data.content_urls && data.content_urls.desktop && data.content_urls.desktop.page;
+      if (src) entry = { src, page: page || null };
+    }
+  } catch (_) {
+    // network/CORS failure — treat as "no photo", cached below like any other miss
+  }
+  wikiImageCache[scientificName] = entry;
+  store.set("bn_wiki_img_cache", JSON.stringify(wikiImageCache));
+  return entry;
+}
+
+/**
+ * Wires up a card's photo <a>/<img> pair to load asynchronously from
+ * Wikipedia once the card is already in the DOM, so card creation never
+ * blocks on a network round trip.
+ */
+function loadCardPhoto(cardEl, scientificName) {
+  if (!scientificName) return;
+  fetchWikiImage(scientificName).then(entry => {
+    if (!entry) return;
+    const imgEl = cardEl.querySelector(".bird-photo-img");
+    const linkEl = cardEl.querySelector(".bird-photo-link");
+    if (imgEl) imgEl.src = entry.src;
+    if (linkEl && entry.page) linkEl.href = entry.page;
+  });
 }
 
 /**
@@ -146,6 +162,7 @@ async function loadTranslations(lang) {
     
     // Re-render dynamic lists to apply new translations
     renderDetections(latestDetections);
+    renderHistory();
     if (document.getElementById("exploreList")) renderExploreList();
 
     // Update selector if it exists
@@ -221,7 +238,7 @@ let colormapName = store.get("bn_colormap", "viridis");
 let colormapFn = d3.interpolateViridis; // Updated in init
 
 // Model & Detection
-let currentLabelLang = store.get("bn_lang", mapBrowserLangToLabelLang(navigator.language));
+let currentLabelLang = store.get("bn_lang", "ru");
 let geoEnabled = store.getBool("bn_geo_enabled", true);
 let detectionThreshold = store.getFloat("bn_threshold", 0.15);
 if (detectionThreshold > 1.0) detectionThreshold = 0.15; // Sanity check
@@ -320,7 +337,9 @@ function logHistoryEntries(detections) {
         key,
         commonName: p.commonNameI18n || p.commonName || key,
         scientificName: p.scientificName || "",
-        confidence: p.confidence
+        confidence: p.confidence,
+        lat: geolocation ? geolocation.lat : null,
+        lon: geolocation ? geolocation.lon : null
       });
     });
 
@@ -385,14 +404,19 @@ const settingsOverlayEl = () => document.getElementById("settingsOverlay");
 document.addEventListener("DOMContentLoaded", () => {
   updateColormap(colormapName);
 
-  // Initialize Language
+  // Initialize Language (defaults to Russian; user can still switch in Settings)
   const savedLang = store.get("bn_ui_lang");
-  const browserLang = navigator.language.split("-")[0];
-  const initialLang = savedLang || (["de", "en"].includes(browserLang) ? browserLang : "en");
+  const initialLang = savedLang || "ru";
   loadTranslations(initialLang);
   
   const isLive = !!document.getElementById("recordButton");
   const isExplore = !!document.getElementById("exploreList");
+  const isMap = !!document.getElementById("mapView");
+
+  if (isMap) {
+    initMapPage();
+    return; // map page doesn't need the BirdNET worker at all
+  }
 
   // Only run if we are on Live or Explore pages
   if (!isLive && !isExplore) return;
@@ -1317,7 +1341,6 @@ function renderDetections(pooled) {
     const commonName = p.commonNameI18n || p.commonName || `Class ${p.index}`;
     const scientificName = p.scientificName || "";
     const key = scientificName || `idx-${p.index}`;
-    const imgUrl = `https://birdnet.cornell.edu/api2/bird/${encodeURIComponent(scientificName)}.webp`;
     const thresholdRowHtml = renderThresholdRow(key, p);
 
     newKeys.add(key);
@@ -1346,13 +1369,13 @@ function renderDetections(pooled) {
       cardCol.innerHTML = `
         <div class="card h-100 border-0 shadow-sm overflow-hidden">
           <div class="d-flex h-100">
-            <div class="flex-shrink-0 position-relative" style="width: 90px; background-color: #f8f9fa;">
-              <img src="${imgUrl}" 
+            <a class="bird-photo-link flex-shrink-0 position-relative d-block" style="width: 90px; background-color: #f8f9fa;" href="#" target="_blank" rel="noopener" title="${tt("lbl_photo_credit", "Photo via Wikipedia")}" onclick="return this.getAttribute('href') !== '#';">
+              <img class="bird-photo-img" src="img/dummy.webp"
                    alt="${commonName}"
                    loading="lazy"
                    style="width: 100%; height: 100%; object-fit: cover;"
                    onerror="this.onerror=null; this.src='img/dummy.webp';">
-            </div>
+            </a>
             <div class="card-body py-2 px-3 flex-grow-1">
               <div class="d-flex justify-content-between align-items-start mb-1">
                 <h6 class="card-title mb-0 fw-bold text-primary text-truncate me-2" style="min-width: 0; font-size: 0.95rem;" title="${commonName}">${commonName}</h6>
@@ -1370,6 +1393,7 @@ function renderDetections(pooled) {
         </div>
       `;
       container.appendChild(cardCol);
+      loadCardPhoto(cardCol, scientificName);
     }
   });
 
@@ -1413,20 +1437,19 @@ function renderExploreList(list) {
   sorted.forEach(bird => {
     const scorePct = (bird.geoscore * 100).toFixed(1);
     const common = bird.commonNameI18n || bird.commonName;
-    const imgUrl = `https://birdnet.cornell.edu/api2/bird/${encodeURIComponent(bird.scientificName)}.webp`;
-    
+
     const col = document.createElement("div");
     col.className = "col-md-6 col-lg-4";
     col.innerHTML = `
       <div class="card h-100 border-0 shadow-sm overflow-hidden">
         <div class="d-flex h-100">
-          <div class="flex-shrink-0 position-relative" style="width: 90px; background-color: #f8f9fa;">
-            <img src="${imgUrl}" 
+          <a class="bird-photo-link flex-shrink-0 position-relative d-block" style="width: 90px; background-color: #f8f9fa;" href="#" target="_blank" rel="noopener" title="${tt("lbl_photo_credit", "Photo via Wikipedia")}" onclick="return this.getAttribute('href') !== '#';">
+            <img class="bird-photo-img" src="img/dummy.webp"
                  alt="${common}"
                  loading="lazy"
                  style="width: 100%; height: 100%; object-fit: cover;"
                  onerror="this.onerror=null; this.src='img/dummy.webp';">
-          </div>
+          </a>
           <div class="card-body py-2 px-3 flex-grow-1">
             <div class="d-flex justify-content-between align-items-start mb-1">
               <div class="overflow-hidden me-2">
@@ -1447,6 +1470,7 @@ function renderExploreList(list) {
       </div>
     `;
     container.appendChild(col);
+    loadCardPhoto(col, bird.scientificName);
   });
 }
 
@@ -1616,4 +1640,44 @@ function computeTemporalPooledDetections(sets) {
 
   pooled.sort((a, b) => b.confidence - a.confidence);
   return pooled;
+}
+
+/* ==========================================================================
+   13. MAP VIEW (local-only for now — see About page roadmap for the
+   shared/Telegram version)
+   ========================================================================== */
+
+const SOCHI_CENTER = [43.6028, 39.7342];
+
+/**
+ * Plots every session-history entry that has a location on a Leaflet map.
+ * Entirely local: reads the same detectionHistory array/localStorage used
+ * by the Live page's history log, nothing is sent anywhere.
+ */
+function initMapPage() {
+  const mapEl = document.getElementById("mapView");
+  if (!mapEl || typeof L === "undefined") return;
+
+  const points = detectionHistory.filter(h => typeof h.lat === "number" && typeof h.lon === "number");
+
+  const map = L.map("mapView").setView(points.length ? [points[0].lat, points[0].lon] : SOCHI_CENTER, points.length ? 12 : 10);
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors'
+  }).addTo(map);
+
+  const markers = points.map(h => {
+    const marker = L.marker([h.lat, h.lon]).addTo(map);
+    const time = new Date(h.t).toLocaleString();
+    marker.bindPopup(`<strong>${h.commonName}</strong><br>${time}<br>${Math.round(h.confidence * 100)}%`);
+    return marker;
+  });
+
+  if (markers.length > 1) {
+    map.fitBounds(L.featureGroup(markers).getBounds().pad(0.2));
+  }
+
+  const note = document.getElementById("mapEmptyNote");
+  if (note && !points.length) note.classList.remove("d-none");
 }

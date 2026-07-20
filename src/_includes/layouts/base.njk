@@ -13,6 +13,9 @@
   <link rel="stylesheet" href="{{ '/vendor/bootstrap/bootstrap.min.css' | url }}">
   <link rel="stylesheet" href="{{ '/vendor/bootstrap-icons/bootstrap-icons.css' | url }}">
   <link rel="stylesheet" href="{{ '/css/main.css' | url }}">
+  {% if page.url == '/map/' %}
+  <link rel="stylesheet" href="{{ '/vendor/leaflet/leaflet.css' | url }}">
+  {% endif %}
 
   <script>
     window.PATH_PREFIX = "{{ '/' | url }}";
@@ -28,6 +31,9 @@
   </main>
 
   <script src="{{ '/vendor/bootstrap/bootstrap.bundle.min.js' | url }}"></script>
+  {% if page.url == '/map/' %}
+  <script src="{{ '/vendor/leaflet/leaflet.js' | url }}"></script>
+  {% endif %}
   <script src="{{ '/js/app.js' | url }}"></script>
   <script>
     if ('serviceWorker' in navigator) {
